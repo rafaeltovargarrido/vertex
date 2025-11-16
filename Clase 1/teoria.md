@@ -91,3 +91,7 @@ La madurez operativa progresa desde la visualización de métricas y logs, hacia
 3. **Integración operativa:** conexión con runbooks y flujos de acción mediante Pub/Sub, Eventarc, Cloud Functions, Cloud Run y Workflows.
 4. **Medición de impacto:** evaluación continua sobre MTTR, disponibilidad, tasa de errores y coste.
 5. **Escalado y gobierno:** extensión a más dominios, versionado de modelos y pipelines, políticas de seguridad y auditoría.
+
+## 10. Fin
+Examen: https://forms.gle/rAKMaTCMcAHcb4XT9
+FeedBack: TODO
