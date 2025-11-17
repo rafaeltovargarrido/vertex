@@ -94,4 +94,4 @@ La madurez operativa progresa desde la visualización de métricas y logs, hacia
 
 ## 10. Fin
 Examen: https://forms.gle/rAKMaTCMcAHcb4XT9
-FeedBack: TODO
+FeedBack: (https://imagina-formacion.typeform.com/to/IkO83DnN)
