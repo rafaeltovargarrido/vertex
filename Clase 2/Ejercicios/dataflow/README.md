@@ -1,6 +1,8 @@
 
 ###Comandos
 
+python3 -m venv my_dataflow_env
+source my_dataflow_env/bin/activate
 pip install apache-beam[gcp]
 
 

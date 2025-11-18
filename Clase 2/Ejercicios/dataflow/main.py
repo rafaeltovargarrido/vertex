@@ -1,5 +1,6 @@
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions, GoogleCloudOptions
+import random
 
 # 1. Define the BigQuery Schema
 # This tells BigQuery what columns to expect.
@@ -28,6 +29,19 @@ class CalculateRevenue(beam.DoFn):
         
         yield row
 
+def generate_mock_data(count):
+    products = ['Laptop', 'Mouse', 'Monitor', 'Keyboard', 'Headphones']
+    data = []
+    for _ in range(count):
+        product = random.choice(products)
+        data.append({
+            'product_id': f"{product[0].upper()}{random.randint(100, 999)}",
+            'product_name': product,
+            'quantity_sold': random.randint(1, 50),
+            'price_per_unit': round(random.uniform(10.0, 1000.0), 2)
+        })
+    return data
+
 def run_pipeline():
     # 3. Setup Pipeline Options
     # In a real scenario, use command line args (argparse)
@@ -43,18 +57,15 @@ def run_pipeline():
     
     # Define the output table: PROJECT:DATASET.TABLE
     # Replace with your actual details
-    output_table = 'YOUR_PROJECT_ID:your_dataset.sales_report'
+    output_table = 'formacionaiops-476808:test.sales_report'
 
     # 4. The Pipeline Construction
     with beam.Pipeline(options=options) as p:
         (
             p
             # Step A: Create Data (Simulating reading from a CSV or GCS)
-            | 'CreateRawData' >> beam.Create([
-                {'product_id': 'A100', 'product_name': 'Laptop', 'quantity_sold': 2, 'price_per_unit': 1200.50},
-                {'product_id': 'B200', 'product_name': 'Mouse', 'quantity_sold': 10, 'price_per_unit': 25.00},
-                {'product_id': 'C300', 'product_name': 'Monitor', 'quantity_sold': 5, 'price_per_unit': 300.00},
-            ])
+            # Step A: Create Data (Simulating reading from a CSV or GCS)
+            | 'CreateRawData' >> beam.Create(generate_mock_data(1000))
             
             # Step B: Apply the Transformation
             | 'CalculateRevenue' >> beam.ParDo(CalculateRevenue())
