@@ -1,106 +1,66 @@
-import os
-import time
-import random
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
-from flask import Flask, jsonify
+import time
+from random import randint, uniform
 
-# --- Imports de Cloud Profiler ---
-try:
-    import googlecloudprofiler
-except ImportError:
-    googlecloudprofiler = None
-
-# --- Imports de OpenTelemetry (Cloud Trace) ---
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.cloud_trace import CloudTraceSpanExporter
+import requests
+from flask import Flask, url_for
 from opentelemetry.instrumentation.flask import FlaskInstrumentor
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.resourcedetector.gcp import GoogleCloudResourceDetector
-app = Flask(__name__)
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
 
-# Configuración de Logging básico
-logging.basicConfig(level=logging.INFO)
+from gcp_logging import setup_structured_logging
+from setup_opentelemetry import setup_opentelemetry
+
+# [START opentelemetry_instrumentation_main]
 logger = logging.getLogger(__name__)
 
-def init_gcp_profiler():
-    """Inicializa Cloud Profiler si la variable de entorno lo permite."""
-    if os.environ.get("ENABLE_PROFILER") == "true":
-        if googlecloudprofiler:
-            try:
-                googlecloudprofiler.start(
-                    service=os.environ.get("K_SERVICE", "mi-flask-api"),
-                    service_version=os.environ.get("K_REVISION", "1.0.0"),
-                    # verbose=3, # Descomentar para debug local
-                )
-                logger.info("✅ Google Cloud Profiler iniciado.")
-            except (ValueError, NotImplementedError) as exc:
-                logger.error(f"❌ Error al iniciar Profiler: {exc}")
-        else:
-            logger.warning("⚠️ Librería google-cloud-profiler no instalada.")
+# Initialize OpenTelemetry Python SDK and structured logging
+setup_opentelemetry()
+setup_structured_logging()
+
+app = Flask(__name__)
+
+# Add instrumentation
+FlaskInstrumentor().instrument_app(app)
+RequestsInstrumentor().instrument()
+# [END opentelemetry_instrumentation_main]
 
 
-def init_cloud_trace():
-    """Inicializa Cloud Trace (OpenTelemetry) con detección de recursos."""
-    if os.environ.get("ENABLE_TRACING") == "true":
-        try:
-            # 1. Detectar automáticamente el entorno de GCP (Cloud Run)
-            # Esto llena atributos como cloud.platform, cloud.region, host.id, etc.
-            gcp_resource = GoogleCloudResourceDetector(raise_on_error=False).detect()
+# [START opentelemetry_instrumentation_handle_multi]
+@app.route("/multi")
+def multi():
+    """Handle an http request by making 3-7 http requests to the /single endpoint."""
+    sub_requests = randint(3, 7)
+    logger.info("handle /multi request", extra={"subRequests": sub_requests})
+    for _ in range(sub_requests):
+        requests.get(url_for("single", _external=True))
+    return "ok"
 
-            # 2. Definir explícitamente el nombre del servicio
-            # Fusionamos (merge) el recurso detectado con nuestro nombre manual
-            service_resource = Resource.create({
-                "service.name": os.environ.get("K_SERVICE", "mi-flask-observability"),
-                "service.version": os.environ.get("K_REVISION", "1.0.0")
-            })
-            final_resource = gcp_resource.merge(service_resource)
 
-            # Configurar el exportador
-            exporter = CloudTraceSpanExporter()
-            
-            # Usar el recurso combinado en el Provider
-            tracer_provider = TracerProvider(resource=final_resource)
-            
-            tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
-            trace.set_tracer_provider(tracer_provider)
-            
-            # Instrumentar Flask
-            FlaskInstrumentor().instrument_app(app)
-            
-            logger.info(f"✅ Google Cloud Trace iniciado para el servicio: {os.environ.get('K_SERVICE')}")
-        except Exception as e:
-            logger.error(f"❌ Error al iniciar Cloud Trace: {e}")
-            
-# --- Inicialización ---
-init_gcp_profiler()
-init_cloud_trace()
+# [END opentelemetry_instrumentation_handle_multi]
 
-# Obtener el tracer para spans manuales si es necesario
-tracer = trace.get_tracer(__name__)
 
-@app.route("/")
-def index():
-    logger.info("Endpoint raíz llamado")
-    return jsonify({"message": "Hola desde Cloud Run con Observabilidad!", "status": "online"})
+# [START opentelemetry_instrumentation_handle_single]
+@app.route("/single")
+def single():
+    """Handle an http request by sleeping for 100-200 ms, and write the number of seconds slept as the response."""
+    duration = uniform(0.1, 0.2)
+    logger.info("handle /single request", extra={"duration": duration})
+    time.sleep(duration)
+    return f"slept {duration} seconds"
 
-@app.route("/heavy")
-def heavy_task():
-    """Simula una tarea pesada para ver en Trace y Profiler."""
-    with tracer.start_as_current_span("tarea_procesamiento_pesado"):
-        logger.info("Iniciando tarea pesada...")
-        
-        # Simulamos carga de CPU para el Profiler
-        result = 0
-        for _ in range(1_000_000):
-            result += random.random()
-            
-        # Simulamos latencia de red/IO para el Trace
-        time.sleep(0.5) 
-        
-        return jsonify({"message": "Tarea pesada completada", "result": result})
 
-if __name__ == "__main__":
-    # Esto es solo para ejecución local
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+# [END opentelemetry_instrumentation_handle_single]
