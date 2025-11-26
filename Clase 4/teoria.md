@@ -489,6 +489,6 @@ MATRIX_FACTORIZATION: Crea un mapa gigante de Usuarios vs Productos para rellena
 ### FIN
 
 
-Examen: https://forms.gle/a45asjaLCVHx9NYCA
+Examen: https://forms.gle/XA4HuyALZv5Mvewp9
 FeedBack: (https://imagina-formacion.typeform.com/to/IkO83DnN)
 
