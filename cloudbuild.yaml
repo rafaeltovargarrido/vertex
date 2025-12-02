@@ -1,0 +1,63 @@
+steps:
+  # -------------------------------------------------------------------------
+  # PASO 1: Construir la imagen Docker
+  # Usamos $COMMIT_SHA para etiquetar la imagen con el ID único del commit
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Build Image'
+    args: [
+      'build', 
+      '-t', 'europe-docker.pkg.dev/formacionaiops-476808/images/training-image:$COMMIT_SHA', 
+      '-t', 'europe-docker.pkg.dev/formacionaiops-476808/images/training-image:latest',
+      '.'
+    ]
+
+  # -------------------------------------------------------------------------
+  # PASO 2: Subir la imagen a Artifact Registry (Europa)
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'Push Image'
+    args: [
+      'push', 
+      'europe-docker.pkg.dev/formacionaiops-476808/images/training-image:$COMMIT_SHA'
+    ]
+
+  # -------------------------------------------------------------------------
+  # PASO 3: Lanzar el entrenamiento en Vertex AI (Custom Job)
+  # Usamos la imagen recién subida con el SHA específico
+  # -------------------------------------------------------------------------
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'Train Model'
+    entrypoint: gcloud
+    args:
+      - ai
+      - custom-jobs
+      - create
+      - --region=europe-west4
+      - --display-name=training-job-$BUILD_ID
+      - --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/formacionaiops-476808/images/training-image:$COMMIT_SHA
+      - --base-output-dir=gs://dataflow_vertex/model_output/
+
+  # -------------------------------------------------------------------------
+  # PASO 4: Desplegar el modelo al Endpoint (Si el paso 3 no falla)
+  # Ejecuta el script deploy.py que tienes en la raíz del repo
+  # -------------------------------------------------------------------------
+  - name: 'python:3.9-slim'
+    id: 'Deploy Endpoint'
+    entrypoint: /bin/sh
+    args:
+      - -c
+      - |
+        echo "Instalando librería de Vertex AI..."
+        pip install google-cloud-aiplatform
+        
+        echo "Ejecutando script de despliegue..."
+        python deploy.py \
+          --project_id=formacionaiops-476808 \
+          --region=europe-west4 \
+          --bucket=dataflow_vertex \
+          --name=mi-modelo-regresion
+
+# Imágenes que Cloud Build registrará como "producidas" por este build
+images:
+  - 'europe-docker.pkg.dev/formacionaiops-476808/images/training-image:$COMMIT_SHA'
