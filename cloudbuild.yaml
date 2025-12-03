@@ -30,20 +30,19 @@ steps:
           --args=--model_dir=gs://${_BUCKET}/model_output/ \
           --format="value(name)")   
       
-
-  # 4. Desplegar
-  - name: 'python:3.9-slim'
-    entrypoint: /bin/sh
-    args:
-      - -c
-      - |
-        pip install google-cloud-aiplatform
-        python deploy.py \
-          --project_id=$PROJECT_ID \
-          --region=${_REGION} \
-          --bucket=${_BUCKET} \
-          --name=mi-modelo-regresion
-
+  
+  # 4. Desplegar Endpoint 
+  #- name: 'python:3.9-slim'
+  #  entrypoint: /bin/sh
+  #  args:
+  #    - -c
+  #    - |
+  #      pip install google-cloud-aiplatform
+  #      python deploy.py \
+  #        --project_id=$PROJECT_ID \
+  #        --region=${_REGION} \
+  #        --bucket=${_BUCKET} \
+  #        --name=mi-modelo-regresion
 images:
   - 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG}'
 
