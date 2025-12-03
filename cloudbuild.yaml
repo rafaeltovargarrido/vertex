@@ -14,27 +14,27 @@ steps:
       'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest'
     ]
 
+
 # -------------------------------------------------------------------------
-  # 3. Lanzar entrenamiento Y ESPERAR A QUE TERMINE
+  # 3. Lanzar entrenamiento Y ESPERAR A QUE TERMINE (Síncrono)
   # -------------------------------------------------------------------------
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: /bin/bash
     args:
       - -c
       - |
-        # 1. Crear el trabajo y capturar su ID
-        JOB_ID=$(gcloud ai custom-jobs create \
+        # Usamos $$ para que Cloud Build ignore esta variable y la deje para Bash
+        JOB_ID=$$(gcloud ai custom-jobs create \
           --region=${_REGION} \
           --display-name=training-job-$BUILD_ID \
           --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:$COMMIT_SHA \
           --args=--model_dir=gs://${_BUCKET}/model_output/ \
           --format="value(name)")
         
-        echo "Trabajo de entrenamiento iniciado: $JOB_ID"
+        echo "Trabajo de entrenamiento iniciado: $$JOB_ID"
         
-        # 2. Esperar a que termine (Streaming de logs)
-        # Esto bloqueará Cloud Build hasta que el entrenamiento finalice
-        gcloud ai custom-jobs stream-logs $JOB_ID --region=${_REGION}
+        # Esperar a que termine usando la variable de bash $$JOB_ID
+        gcloud ai custom-jobs stream-logs $$JOB_ID --region=${_REGION}
 
   # 4. Desplegar
   - name: 'python:3.9-slim'
