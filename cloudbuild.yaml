@@ -1,5 +1,5 @@
 steps:
-  # 1. Construir la imagen Docker
+  # 1. Construir
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build', 
@@ -7,15 +7,14 @@ steps:
       '.'
     ]
 
-  # 2. Subir la imagen a Artifact Registry
+  # 2. Subir
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push', 
       'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest'
     ]
 
-  # 3. Lanzar entrenamiento (CORREGIDO)
-  # Hemos movido la definición del bucket DENTRO de worker-pool-spec usando 'env'
+  # 3. Entrenar (CORREGIDO)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -24,10 +23,12 @@ steps:
       - create
       - --region=${_REGION}
       - --display-name=training-job-$BUILD_ID
-      # Fíjate en el final de esta línea: env=AIP_MODEL_DIR=...
-      - --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest,env=AIP_MODEL_DIR=gs://${_BUCKET}/model_output/
+      # Aquí definimos la máquina y la imagen LIMPIAS (sin env=)
+      - --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest
+      # Aquí pasamos el argumento a tu script python
+      - --args=--model_dir=gs://${_BUCKET}/model_output/
 
-  # 4. Desplegar el modelo
+  # 4. Desplegar
   - name: 'python:3.9-slim'
     entrypoint: /bin/sh
     args:

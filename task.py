@@ -1,5 +1,6 @@
 import os
 import logging
+import argparse # <--- IMPORTANTE
 from sklearn.linear_model import LinearRegression
 import numpy as np
 import joblib
@@ -7,7 +8,7 @@ from google.cloud import storage
 
 logging.basicConfig(level=logging.INFO)
 
-def train_and_save():
+def train_and_save(model_dir):
     logging.info("Iniciando entrenamiento...")
     
     # Datos de ejemplo
@@ -23,14 +24,12 @@ def train_and_save():
     model_filename = "model.joblib"
     joblib.dump(model, model_filename)
 
-    # Subir a GCS (Vertex AI establece AIP_MODEL_DIR automáticamente)
-    model_dir = os.getenv("AIP_MODEL_DIR")
-    
+    # Subir a GCS
     if model_dir:
         logging.info(f"Subiendo modelo a: {model_dir}")
-        # Lógica para subir al bucket gs://dataflow_vertex/...
         bucket_name = model_dir.replace("gs://", "").split("/")[0]
-        blob_path = "/".join(model_dir.replace("gs://", "").split("/")[1:]) + f"/{model_filename}"
+        # Truco para limpiar la ruta si viene con o sin / al final
+        blob_path = "/".join(model_dir.replace("gs://", "").split("/")[1:]).strip("/") + f"/{model_filename}"
         
         client = storage.Client()
         bucket = client.bucket(bucket_name)
@@ -38,7 +37,13 @@ def train_and_save():
         blob.upload_from_filename(model_filename)
         logging.info("¡Subida completada!")
     else:
-        logging.warning("AIP_MODEL_DIR no encontrado. Ejecución local.")
+        logging.warning("No se especificó --model_dir. El modelo se guardó localmente.")
 
 if __name__ == '__main__':
-    train_and_save()
+    # 1. Configurar el lector de argumentos
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_dir', type=str, default=os.getenv('AIP_MODEL_DIR'))
+    args = parser.parse_args()
+
+    # 2. Ejecutar con el argumento
+    train_and_save(args.model_dir)
