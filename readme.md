@@ -1,0 +1,1 @@
+https://cloud.google.com/blog/products/identity-security/enabling-keyless-authentication-from-github-actions

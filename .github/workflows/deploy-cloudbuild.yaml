@@ -1,0 +1,49 @@
+name: Deploy MLOps Pipeline to Cloud Build
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+env:
+  PROJECT_ID: formacionaiops-476808
+  REGION: europe-west4
+  BUCKET_NAME: dataflow_vertex
+  REPO_NAME: images
+  
+  # ✅ TU NUEVO PROVIDER (Copiado de tu output)
+  WORKLOAD_IDENTITY_PROVIDER: 'projects/521912427275/locations/global/workloadIdentityPools/pool-github-v2/providers/provider-github-v2'
+  
+  # ✅ TU CUENTA DE SERVICIO (La que creamos en el script)
+  SERVICE_ACCOUNT: 'cloudbuild-trigger-sa@formacionaiops-476808.iam.gserviceaccount.com'
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write' # ⚠️ OBLIGATORIO para que funcione la federación
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Autenticación segura sin JSON keys
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: '${{ env.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ env.SERVICE_ACCOUNT }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Lanzar Cloud Build
+      - name: Submit build
+        run: |
+          gcloud builds submit --config=cloudbuild.yaml \
+            --project=$PROJECT_ID \
+            --region=$REGION \
+            --substitutions=_REGION=$REGION,_BUCKET=$BUCKET_NAME,_REPO_NAME=$REPO_NAME
