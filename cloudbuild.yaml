@@ -1,9 +1,10 @@
 steps:
-  # 1. Construir
+  # 1. Construir (Usamos la variable nueva)
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build', 
-      '-t', 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest', 
+      '-t', 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG}', 
+      '-t', 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest',
       '.'
     ]
 
@@ -11,29 +12,31 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push', 
-      'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest'
+      'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG}'
     ]
 
-
-# -------------------------------------------------------------------------
-  # 3. Lanzar entrenamiento Y ESPERAR A QUE TERMINE (Síncrono)
-  # -------------------------------------------------------------------------
+  # 3. Entrenar
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: /bin/bash
     args:
       - -c
       - |
-        # Usamos $$ para que Cloud Build ignore esta variable y la deje para Bash
+        # Usamos $$ para escapar variables bash y ${_IMAGE_TAG} para la imagen
         JOB_ID=$$(gcloud ai custom-jobs create \
           --region=${_REGION} \
           --display-name=training-job-$BUILD_ID \
-          --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:$COMMIT_SHA \
+          --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG} \
           --args=--model_dir=gs://${_BUCKET}/model_output/ \
           --format="value(name)")
         
         echo "Trabajo de entrenamiento iniciado: $$JOB_ID"
         
-        # Esperar a que termine usando la variable de bash $$JOB_ID
+        # Si JOB_ID está vacío, fallamos antes de seguir
+        if [ -z "$$JOB_ID" ]; then
+          echo "ERROR: No se pudo crear el trabajo de entrenamiento."
+          exit 1
+        fi
+
         gcloud ai custom-jobs stream-logs $$JOB_ID --region=${_REGION}
 
   # 4. Desplegar
@@ -50,9 +53,10 @@ steps:
           --name=mi-modelo-regresion
 
 images:
-  - 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:latest'
+  - 'europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG}'
 
 substitutions:
     _REGION: europe-west4
     _BUCKET: dataflow_vertex
     _REPO_NAME: images
+    _IMAGE_TAG: latest  # Valor por defecto por seguridad
