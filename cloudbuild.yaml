@@ -27,17 +27,9 @@ steps:
           --display-name=training-job-$BUILD_ID \
           --worker-pool-spec=machine-type=n1-standard-4,replica-count=1,container-image-uri=europe-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/training-image:${_IMAGE_TAG} \
           --args=--model_dir=gs://${_BUCKET}/model_output/ \
-          --format="value(name)")
-        
-        echo "Trabajo de entrenamiento iniciado: $$JOB_ID"
-        
-        # Si JOB_ID está vacío, fallamos antes de seguir
-        if [ -z "$$JOB_ID" ]; then
-          echo "ERROR: No se pudo crear el trabajo de entrenamiento."
-          exit 1
-        fi
-
-        gcloud ai custom-jobs stream-logs $$JOB_ID --region=${_REGION}
+          --format="value(name)") \
+          --quiet  
+      
 
   # 4. Desplegar
   - name: 'python:3.9-slim'
