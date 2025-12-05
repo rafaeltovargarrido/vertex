@@ -45,3 +45,4 @@ Asegúrate de que tu carpeta tenga estos 4 archivos:
 ```
 https://cloud.google.com/blog/products/identity-security/enabling-keyless-authentication-from-github-actions
 
+Ejemplo de lanzar el trigger de github Action.
