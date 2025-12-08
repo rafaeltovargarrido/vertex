@@ -579,3 +579,8 @@ Para cumplir con normativas y buenas prácticas:
 El objetivo final es que AIOps no solo mejore la eficiencia y la observabilidad, sino que también **cumpla de forma demostrable con los requisitos de seguridad y normativos** de la organización.
 
 ---
+
+## FIN
+
+Examen: (https://forms.gle/i1xMUhbkAigLH1VNA)
+FeedBack: (https://imagina-formacion.typeform.com/to/IkO83DnN)
