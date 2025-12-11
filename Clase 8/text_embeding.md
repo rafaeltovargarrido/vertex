@@ -302,3 +302,60 @@ En datasets pequeños (como el de clase), esto **no es necesario** y nos quedar�
   - FAQ inteligentes.
   - Recomendación de artículos de conocimiento.
   - Cualquier escenario donde quieras **buscar por significado**, no solo por palabras clave.
+
+
+En detalle 
+
+1. ¿Qué es un text embedding?
+
+Un text embedding es una forma de convertir un texto (una frase, un log, la descripción de un incidente) en una lista de números (un vector).
+
+La idea clave:
+
+Textos que significan cosas parecidas → se convierten en vectores que quedan cerca en el espacio (como puntos cercanos en las gráficas de arriba).
+
+Textos muy diferentes → sus vectores quedan lejos.
+
+En las imágenes ves puntos en 2D/3D: cada punto es un embedding. Los que están agrupados son “semánticamente similares”.
+
+2. ¿Por qué es útil para Operaciones / SRE?
+
+Imagina que conviertes en vectores:
+
+Mensajes de logs de errores.
+
+Descripciones de incidentes en tu sistema de tickets.
+
+Textos de runbooks y documentación.
+
+Con embeddings puedes:
+
+Búsqueda semántica de logs
+Buscar “error de timeout a base de datos” y recuperar logs parecidos, aunque no tengan exactamente esas palabras.
+Esto ayuda a encontrar incidentes pasados similares al actual.
+
+Detección de patrones
+Agrupar (clusterizar) logs o tickets “parecidos” en el espacio de vectores, para ver:
+
+Familias de errores.
+
+Tipos de incidentes frecuentes.
+
+Recomendación de runbooks
+Con el embedding de un log o descripción de alerta, buscar el runbook cuyo embedding esté más cerca → “esta alerta se parece a este procedimiento”.
+
+3. Intuición con la gráfica
+
+Si piensas en cada punto como un log:
+
+Un grupo de puntos verdes puede ser “errores 500 por timeout a la base de datos”.
+
+Un grupo de puntos rojos puede ser “errores 429 por rate limit”.
+
+Aunque el texto exacto varíe (stacktrace distinto, hostname distinto…), en el espacio de embeddings caen juntos.
+
+Eso es lo potente: el modelo entiende el significado, no solo las palabras exactas.
+
+4. Resumen en una frase
+
+Text embedding = traducir texto técnico (logs, tickets, runbooks) a vectores de números para poder medir qué tan parecidos son, buscar por significado y agrupar incidentes similares en AIOps.
