@@ -400,11 +400,6 @@ El reto principal para los equipos SRE es **diseñar bien los flujos**, prompts 
 - Seguridad y cumplimiento.
 - Coste y latencia razonables.
 
-En los próximos ejercicios/prácticas se pueden construir:
-- Un resumen automático de incidentes.
-- Un pequeño chatbot interno para soporte IT basado en datos reales de observabilidad.
-
-
 
 https://forms.gle/15Gh111zhcQawv379
 
